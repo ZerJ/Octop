@@ -1,5 +1,23 @@
 """URL helpers shared across infra and API layers."""
 
+from urllib.parse import urlsplit, urlunsplit
+
+
+def canonical_browser_url(url: str) -> str:
+    """Avoid Xiaohongshu's search redirect from HTTPS to HTTP.
+
+    The slashless search endpoint redirects to HTTP and can stall Chrome's
+    page CDP connection. Its HTTPS endpoint with a trailing slash loads directly.
+    """
+    parts = urlsplit(url)
+    if (
+        parts.scheme.lower() == "https"
+        and parts.hostname in {"www.xiaohongshu.com", "xiaohongshu.com"}
+        and parts.path == "/search_result"
+    ):
+        return urlunsplit(parts._replace(path="/search_result/"))
+    return url
+
 
 def normalize_nav_url(raw: str) -> str:
     """``baidu.com`` → ``https://baidu.com``; empty input → ``\"\"``."""

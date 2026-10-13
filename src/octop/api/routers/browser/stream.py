@@ -47,6 +47,7 @@ from octop.api.routers.browser.harness import (
     resolve_harness_session,
 )
 from octop.infra.utils.browser_media import user_browser_profile
+from octop.infra.utils.url import canonical_browser_url
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +67,8 @@ def _normalize_nav_url(raw: str) -> str:
     if not t:
         return ""
     if t.lower().startswith(("http://", "https://")):
-        return t
-    return f"https://{t}"
+        return canonical_browser_url(t)
+    return canonical_browser_url(f"https://{t}")
 
 
 async def _capture_jpeg(sess: Any) -> str | None:

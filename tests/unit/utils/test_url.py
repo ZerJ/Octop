@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from octop.infra.utils.url import normalize_nav_url
+import pytest
+
+from octop.infra.utils.url import canonical_browser_url, normalize_nav_url
 
 
 def test_empty_and_blank() -> None:
@@ -30,3 +32,17 @@ def test_protocol_relative_url_gets_https() -> None:
 
 def test_non_http_scheme_with_slashes_is_rejected() -> None:
     assert normalize_nav_url("ftp://x.com") == ""
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://example.com/search_result?q=1",
+        "https://www.xiaohongshu.com.evil.test/search_result?q=1",
+        "https://www.xiaohongshu.com/search_result/?q=1",
+        "https://www.xiaohongshu.com/explore?q=1",
+        "http://www.xiaohongshu.com/search_result?q=1",
+    ],
+)
+def test_browser_url_keeps_other_hosts_paths_and_schemes(url: str) -> None:
+    assert canonical_browser_url(url) == url

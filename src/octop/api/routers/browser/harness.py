@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -137,11 +138,10 @@ async def resolve_harness_session(
 
     # Shared ~/.octop/browser-profiles (not per-agent workspace).
     await prepare_harness_profile_for_launch(profile)
-    # Virtual desktop (Xvnc :99) → headed Chrome so the window shows on
-    # remote desktop; otherwise force headless (do not use mode=auto — a
-    # stale $DISPLAY would still resolve to headed and crash Chromium).
+    # Windows/macOS desktops do not need DISPLAY. On Linux require a live
+    # X11 display (including Xvnc :99); stale DISPLAY must not launch headed.
     display = resolve_browser_display()
-    launch_mode = "headed" if display else "headless"
+    launch_mode = "headed" if display or sys.platform in {"win32", "darwin"} else "headless"
 
     # Fresh ProfileManager picks up any BROWSER_USE_PROFILES_DIR relocation
     # done by prepare (default singleton is bound at import time).
@@ -175,7 +175,7 @@ async def resolve_harness_session(
             )
             await prepare_harness_profile_for_launch(profile, force_recover=True)
             display = resolve_browser_display()
-            launch_mode = "headed" if display else "headless"
+            launch_mode = "headed" if display or sys.platform in {"win32", "darwin"} else "headless"
             profile_manager = ProfileManager(base_dir=Path(hb_settings.profiles_dir))
             try:
                 sess = await BrowserSession.create(

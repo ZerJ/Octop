@@ -24,3 +24,8 @@ def test_uppercase_scheme_is_not_double_prefixed() -> None:
     """A user-typed HTTPS:// URL must not become https://HTTPS://..."""
     assert _normalize_nav_url("HTTPS://x.com/") == "HTTPS://x.com/"
     assert _normalize_nav_url("HTTP://x.com/") == "HTTP://x.com/"
+
+
+def test_search_url_avoids_downgrade_redirect() -> None:
+    url = "https://www.xiaohongshu.com/search_result?keyword=%E5%A6%88%E7%A5%96&type=51"
+    assert _normalize_nav_url(url) == url.replace("/search_result?", "/search_result/?")

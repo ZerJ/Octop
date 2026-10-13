@@ -13,6 +13,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
 from octop.infra.utils.browser_media import parse_octop_user_id, user_browser_profile
+from octop.infra.utils.url import canonical_browser_url
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,10 @@ def _bind_browser_profile(request: ToolCallRequest) -> ToolCallRequest | ToolMes
     raw_args = tool_call.get("args")
     args = dict(raw_args) if isinstance(raw_args, dict) else {}
     args["profile"] = user_browser_profile(user_id)
+    for field in ("url", "target_url", "href", "query", "link", "address"):
+        value = args.get(field)
+        if isinstance(value, str) and value:
+            args[field] = canonical_browser_url(value)
     return request.override(tool_call={**tool_call, "args": args})
 
 

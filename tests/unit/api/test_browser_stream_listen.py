@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from octop.api.routers.browser import harness as harness_mod
 from octop.api.routers.browser import stream as stream_mod
 from octop.api.routers.browser.harness import resolve_harness_session
 
@@ -106,6 +107,41 @@ async def test_resolve_harness_session_create_false_returns_none() -> None:
     ):
         result = await resolve_harness_session("default", create=False)
     assert result is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("platform", "display", "expected_mode"),
+    [
+        ("win32", None, "headed"),
+        ("darwin", None, "headed"),
+        ("linux", ":99", "headed"),
+        ("linux", None, "headless"),
+    ],
+)
+@pytest.mark.parametrize("recover", [False, True])
+async def test_resolve_harness_session_launch_mode(
+    platform: str, display: str | None, expected_mode: str, recover: bool
+) -> None:
+    from octop_browser import BrowserSession
+    from octop_browser.tool_interface import _registry
+
+    from octop.infra.browser import setup
+
+    session = object()
+    outcomes = [RuntimeError("ProcessSingleton"), session] if recover else [session]
+    with (
+        patch.dict(_registry, {}, clear=True),
+        patch.object(sys, "platform", platform),
+        patch.object(setup, "prepare_harness_profile_for_launch", new=AsyncMock()),
+        patch.object(setup, "resolve_browser_display", return_value=display),
+        patch("octop_browser.profile.ProfileManager"),
+        patch.object(BrowserSession, "create", new=AsyncMock(side_effect=outcomes)) as create,
+    ):
+        assert await harness_mod.resolve_harness_session("user-1") is session
+
+    assert create.await_count == (2 if recover else 1)
+    assert all(call.kwargs["mode"] == expected_mode for call in create.await_args_list)
 
 
 @pytest.mark.asyncio
